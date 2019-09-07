@@ -1,0 +1,150 @@
+---
+title: "Goodreads Data Analysis of Performance Authors and Book"
+author: "Lohansen"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: Architect
+    highlight: github
+    df_print : paged
+---
+
+# Data Introduction
+This goodreads dataset contains a collection of information from books and novels that have been rated and reviews from readers. through this data we can analyze the correlation between the rating, the number of pages, the number of ratings, and the number of comments given to each book. This dataset available in [kaggle](https://www.kaggle.com/jealousleopard/goodreadsbooks)
+
+
+# Let's know more about the contents of the data
+### Data Glossary
+following are the Goodreads Book Dataset variable :
+- bookID Contains the unique ID for each book/series
+
+- title contains the titles of the books
+
+- authors contains the author of the particular book
+
+-  average_rating the average rating of the books, as decided by the users
+
+- ISBN ISBN(10) number, tells the information about a book - such as edition and publisher
+
+- ISBN 13 The new format for ISBN, implemented in 2007. 13 digits
+
+- language_code Tells the language for the books
+
+- Num_pages Contains the number of pages for the book
+
+- Ratings_count Contains the number of ratings given for the book
+
+- text_reviews_count Has the count of reviews left by users
+
+
+### geting the basic ideas of data
+first we have to read the dataset that has been prepared with the `read.` function, since my data is in the form of csv, the function I use is` read.csv`, then analyzes the data variable with the `str` function
+```{r}
+book <- read.csv("goodreadsbooks/books.csv")
+str(book)
+```
+
+### Adjusting the data
+After knowing the variables that exist in the data, then we can then make adjustments to the data variable according to its contents. here I use the `as.` function to change and make adjustments to the data
+```{r}
+book$title <- as.character(book$title)
+book$authors <- as.character(book$authors)
+book$average_rating <- as.character(book$average_rating)
+book$average_rating <- as.numeric(book$average_rating)
+book$isbn <- as.integer(book$isbn)
+book$isbn13 <- as.integer(book$isbn13)
+```
+
+
+# Data Exploration
+
+#### load library
+```{r}
+library(ggplot2)
+library(reshape2)
+library(ggrepel)
+```
+
+
+#### 10 Most rated books
+```{r}
+book.msrt <- book[book$ratings_count > 1000000, ]
+book.msrt <- book.msrt[order(book.msrt$ratings_count, decreasing = T),]
+book.msrt$title <- factor(book.msrt$title, levels = book.msrt$title[order(book.msrt$ratings_count)])
+book.10msrt <- head(book.msrt, 10)
+
+ggplot(book.10msrt, aes(x = title, y = ratings_count))+
+  geom_col(aes(fill = title))+ 
+  coord_flip()+
+  theme(axis.text.y = element_text(size = 6), legend.position = "none")+
+  labs(x = NULL,
+       y = NULL,
+       title = "Top 10 Highest Ratings Book")
+```
+
+Insights :
+We can see that the beginning books of the series usually have most of the ratings, i.e, Harry Potter and the Sorcerer stone, Twilight, The Hobbit, Angels and demons.
+
+Harry potter first book dominates the section by having more than 5.000.000 ratings. Infact, apart from a few, such as Catcher in the Rye and Animal Farm, all of the books seem to be from a series of books, getting the notion into our head that once people begin, most of them seem to dive in with the notion of completing it.
+
+When we see at the first and fifth book of Harry Potter, we can also notice that there has been a huge margin in the number of readers/ratings for the books, signifying that there were people who did not pick up the next book in the series and/or only found the first book to touch their hearts up to an extent to drop a vote
+
+
+#### The distribution of books in all languages
+```{r}
+options(scipen = 999)
+lang <- c("ale","ara","cat","dan", "en-CA", "en-GB", "en-US", "eng", "enm", "fre", "ger", "gla", "glg", "grc", "heb", "ita", "jpn", "lat", "msa", "mul", "nl", "nor", "por", "rus", "spa", "srp", "swe", "tur", "wel", "zho")
+
+book_clean <- book[book$language_code %in% lang,]
+book_clean$language_code <- factor(book_clean$language_code)
+levels(book_clean$language_code)
+
+ggplot(book_clean, aes(x = language_code, y = ratings_count))+
+  geom_col(aes(fill = language_code))+
+  theme(axis.text.x = element_text(angle = 90), legend.position = "none")+
+  labs(x = NULL,
+       y = NULL,
+       title = "Book language distribution")
+```
+
+Insights :
+From the given graph, we can infer that in the given data, majority of the books are in english languages, with some further categorised into English-US, english-UK and english-CA. the number of books that have the Eng-us language category goes beyond the book with other languages. can be seen from the comparison of the number seen in the plot, indicating that there is a significant distance in the number of books with others.
+
+
+#### Ratings count and text reviews count distirbution 
+```{r}
+book.popl <- melt(book, id.vars = "average_rating", measure.vars = c("ratings_count", "text_reviews_count"))
+
+ggplot(book.popl, aes(x = average_rating, y = value))+
+  geom_point(aes(col = variable), position = "stack")+
+  labs(x = NULL,
+       y = NULL,
+       title = "Ratings Count vs Text Reviews Count")
+```
+
+Insights :
+through the plot above, it can be concluded that the distribution of rating and review of books is mostly in books with a rating of 3.5 - 4.5. and books that are given a rating of 1, 2 and 5 are very rare.
+
+the amount of the rating also has a significant influence on giving a review. in books with a high rating, it also influences the giving of high reviews from readers.
+
+
+#### Correlation between average rating and Ratings count
+```{r, fig.height=6, fig.width=6}
+book.hrtct <- book[book$ratings_count >= 2000000,]
+book.hrtct_clean <- book.hrtct[complete.cases(book.hrtct),]
+
+ggplot(book.hrtct_clean, aes(x = average_rating, y = ratings_count))+
+  ylim(2000000, 6000000) +
+  geom_point(aes(size = ratings_count, col = average_rating))+
+    geom_label_repel(aes(label = title), nudge_y = 250000, size = 3)+
+  scale_color_gradient(low = "red", high = "blue")+
+  theme(legend.position = "none")+
+  labs(x = NULL,
+       y = NULL,
+       title = "Ratings and Reviews Count Correlation")
+```
+
+Insights :
+It can be concluded that the high number of ratings given does not affect the rating value obtained by a book. for example, like the Harry Potter #1 book which has the highest Rating Count but does not have a high rating, it is still inferior compared to the Harry Potter #3 book which has a higher rating value even though with a smaller number of rating count. It can be denied that HarryPotter # 1 and Twilight are the two books that have the highest rank in the goodreads data, which have a much higher than average value.
+
+
