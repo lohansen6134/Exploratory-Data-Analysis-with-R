@@ -1,0 +1,92 @@
+---
+title: "Uber NYC 2016 Trips Analysis"
+author: "Lohansen"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+
+# Introduction
+This document is created for Monthly report including weekly total dispatched trips and unique dispatched vehicles by base tabulated from FHV Trip Record submissions made by bases. available in [Kaggle](https://www.kaggle.com/danvargg/uber-nyc-2016).
+
+
+#### Data Glossary
+
+By using the `str ()`function on the 2016 New York City Uber Trips dataset, we can understand the dataset consisting of 1474 observations and 10 variables. Each trip in uber has a unique base license and is also included in the wave number 1 to wave number 4. From this dataset we can find weekly total dispatch trips and unique dispatched vehicle in uber throughout 2016 in New York City.
+
+```{r}
+# File Zip perlu diekstrak terlebih dahulu agar dapat menjalankan function read.csv
+data_uber <- read.csv("Uber_Trips_NYC_2016.csv")
+str(data_uber)
+```
+
+following the Uber NYC Trips 2016 golosarry dataset:
+
+- Base License Number: License number from uber trip
+- wave number: uber trip wave group
+- Base Name: the name of the uber trip that occurred
+- DBA: Data Base Administrator
+- Years: uber trip year
+- Pickup Start Dates: the day of the trip starts
+- Pickup End Dates: trip day ends
+- Total Dispatched Trips: total of travel trips that have been dispatched
+- Unique dispatched vehicles: total amount of unique vehicle have been dispatched
+
+# Data Explanatory
+
+1. Change the PickupStart Date and Pickup End Date Pickup classes
+
+The pickup Start Date and End Date contained in this dataset are in `factor` class, which is must to change it to be the` date` class.
+```{r}
+data_uber$Pickup.Start.Date <- as.Date(data_uber$Pickup.Start.Date, format = "%m/%d/%y")
+```
+
+```{r}
+data_uber$Pickup.End.Date <- as.Date(data_uber$Pickup.End.Date, format = "%m/%d/%y")
+```
+
+
+2. the proportion of each wave number
+
+To find out the number of waves that occur in this uber trip data, you can use the `table` and` prop table` functions and use the `paste` function, and `sprintf` to make the percent format
+```{r}
+table(data_uber$Wave.Number)
+paste(sprintf("%.1f", prop.table(table(data_uber$Wave.Number))*100), "%", sep = "")
+```
+
+
+3. how many unique dispatch vehicles are above 1000
+
+with the `subset` function we can search for data with certain requirements, for example looking for the number of unique dispatch vehicles that have a number of more than 1000
+```{r}
+UDV <- data_uber[data_uber$Unique.Dispatched.Vehicle>1000,]
+nrow(UDV)
+```
+
+4. Total dispatched trips in wave number 3
+
+to find out the total number of dispatched trips that occur in wave number 3, we can use the `subset `function. then use `as.data.frame` and` t` to show the list of dispatched trips. then add it with the function `sum`
+```{r}
+a <- data_uber[data_uber$Wave.Number == 3,]
+a2 <- as.data.frame(a[,9])
+a2 <- t(a2)
+a2
+sum(a2)
+```
+
+5. make new variable the name of day, month in pickup start date
+
+Through the lubricate library, I create new variables to show the day, month and year of the start date pickup using `wday`,`month`,`year` function. 
+```{r}
+library(lubridate)
+data_uber$Pickup_start_day <- wday(data_uber$Pickup.Start.Date, label = T, abbr = F)
+data_uber$Pickup_start_month <- month(data_uber$Pickup.Start.Date, label = T, abbr = F)
+data_uber$Pickup_start_year <- year(data_uber$Pickup.Start.Date)
+
+#output (new variable)
+head(data_uber$Pickup_start_day)
+head(data_uber$Pickup_start_month)
+head(data_uber$Pickup_start_year)
+```
